@@ -86,6 +86,18 @@
   }
   .store-input::placeholder { color: #5a5a7a; }
   .store-input:focus { border-color: var(--accent); }
+  .reset-set-btn {
+    background: transparent;
+    border: 1px solid #444;
+    color: #888;
+    border-radius: 5px;
+    padding: 4px 10px;
+    font-size: 0.65rem;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+  }
+  .reset-set-btn:active { border-color: #c0392b; color: #c0392b; }
   .dir-sel {
     background: var(--surface);
     color: var(--text);
@@ -179,6 +191,7 @@
   <div class="set-header">
     <div class="set-label">SET 1</div>
     <div class="direction-wrap">
+      <button class="reset-set-btn" onclick="resetSet(1)">リセット</button>
       <div class="direction-label">向き</div>
       <select id="dir-1" class="dir-sel">
         <option value="">選択...</option>
@@ -211,6 +224,7 @@
   <div class="set-header">
     <div class="set-label">SET 2</div>
     <div class="direction-wrap">
+      <button class="reset-set-btn" onclick="resetSet(2)">リセット</button>
       <div class="direction-label">向き</div>
       <select id="dir-2" class="dir-sel">
         <option value="">選択...</option>
@@ -243,6 +257,7 @@
   <div class="set-header">
     <div class="set-label">SET 3</div>
     <div class="direction-wrap">
+      <button class="reset-set-btn" onclick="resetSet(3)">リセット</button>
       <div class="direction-label">向き</div>
       <select id="dir-3" class="dir-sel">
         <option value="">選択...</option>
@@ -297,6 +312,18 @@ function restore() {
       }
     });
   } catch(e) {}
+}
+
+function resetSet(s) {
+  document.getElementById('dir-' + s).value = '';
+  document.getElementById('store-' + s).value = '';
+  for (let i = 1; i <= 9; i++) {
+    const sel = document.getElementById('sel-c' + s + '-' + i);
+    if (sel) sel.value = '';
+    const cell = document.getElementById('c' + s + '-' + i);
+    if (cell) cell.classList.remove('predicted');
+  }
+  save();
 }
 
 function togglePredict(id, btn) {

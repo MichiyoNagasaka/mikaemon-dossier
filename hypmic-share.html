@@ -167,7 +167,7 @@
 </head>
 <body>
 
-<button class="line-back-btn" onclick="history.back()">← LINEに戻る</button>
+
 
 <header>
   <div class="title">Detective MIKAEMON<span style="color:#E8003D">'s</span> DOSSIER</div>
@@ -180,7 +180,7 @@
     <div class="set-label">SET 1</div>
     <div class="direction-wrap">
       <div class="direction-label">向き</div>
-      <select class="dir-sel">
+      <select id="dir-1" class="dir-sel">
         <option value="">選択...</option>
         <option>前向き</option>
         <option>後ろ向き</option>
@@ -189,18 +189,18 @@
   </div>
   <div class="store-wrap">
     <div class="store-label">店舗</div>
-    <input class="store-input" type="text" placeholder="店舗名を入力...">
+    <input id="store-1" class="store-input" type="text" placeholder="店舗名を入力...">
   </div>
   <div class="grid">
-    <div class="cell" id="c1-1"><div class="cell-top"><div class="cell-label">No.1</div><button class="predict-btn" onclick="togglePredict('c1-1',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c1-2"><div class="cell-top"><div class="cell-label">No.2</div><button class="predict-btn" onclick="togglePredict('c1-2',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c1-3"><div class="cell-top"><div class="cell-label">No.3</div><button class="predict-btn" onclick="togglePredict('c1-3',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c1-4"><div class="cell-top"><div class="cell-label">No.4</div><button class="predict-btn" onclick="togglePredict('c1-4',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c1-5"><div class="cell-top"><div class="cell-label">No.5</div><button class="predict-btn" onclick="togglePredict('c1-5',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c1-6"><div class="cell-top"><div class="cell-label">No.6</div><button class="predict-btn" onclick="togglePredict('c1-6',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c1-7"><div class="cell-top"><div class="cell-label">No.7</div><button class="predict-btn" onclick="togglePredict('c1-7',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c1-8"><div class="cell-top"><div class="cell-label">No.8</div><button class="predict-btn" onclick="togglePredict('c1-8',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c1-9"><div class="cell-top"><div class="cell-label">No.9</div><button class="predict-btn" onclick="togglePredict('c1-9',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c1-1"><div class="cell-top"><div class="cell-label">No.1</div><button class="predict-btn" onclick="togglePredict('c1-1',this)">予想</button></div><select id="sel-c1-1" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c1-2"><div class="cell-top"><div class="cell-label">No.2</div><button class="predict-btn" onclick="togglePredict('c1-2',this)">予想</button></div><select id="sel-c1-2" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c1-3"><div class="cell-top"><div class="cell-label">No.3</div><button class="predict-btn" onclick="togglePredict('c1-3',this)">予想</button></div><select id="sel-c1-3" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c1-4"><div class="cell-top"><div class="cell-label">No.4</div><button class="predict-btn" onclick="togglePredict('c1-4',this)">予想</button></div><select id="sel-c1-4" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c1-5"><div class="cell-top"><div class="cell-label">No.5</div><button class="predict-btn" onclick="togglePredict('c1-5',this)">予想</button></div><select id="sel-c1-5" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c1-6"><div class="cell-top"><div class="cell-label">No.6</div><button class="predict-btn" onclick="togglePredict('c1-6',this)">予想</button></div><select id="sel-c1-6" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c1-7"><div class="cell-top"><div class="cell-label">No.7</div><button class="predict-btn" onclick="togglePredict('c1-7',this)">予想</button></div><select id="sel-c1-7" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c1-8"><div class="cell-top"><div class="cell-label">No.8</div><button class="predict-btn" onclick="togglePredict('c1-8',this)">予想</button></div><select id="sel-c1-8" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c1-9"><div class="cell-top"><div class="cell-label">No.9</div><button class="predict-btn" onclick="togglePredict('c1-9',this)">予想</button></div><select id="sel-c1-9" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
   </div>
 </div>
 
@@ -212,7 +212,7 @@
     <div class="set-label">SET 2</div>
     <div class="direction-wrap">
       <div class="direction-label">向き</div>
-      <select class="dir-sel">
+      <select id="dir-2" class="dir-sel">
         <option value="">選択...</option>
         <option>前向き</option>
         <option>後ろ向き</option>
@@ -221,18 +221,18 @@
   </div>
   <div class="store-wrap">
     <div class="store-label">店舗</div>
-    <input class="store-input" type="text" placeholder="店舗名を入力...">
+    <input id="store-2" class="store-input" type="text" placeholder="店舗名を入力...">
   </div>
   <div class="grid">
-    <div class="cell" id="c2-1"><div class="cell-top"><div class="cell-label">No.1</div><button class="predict-btn" onclick="togglePredict('c2-1',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c2-2"><div class="cell-top"><div class="cell-label">No.2</div><button class="predict-btn" onclick="togglePredict('c2-2',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c2-3"><div class="cell-top"><div class="cell-label">No.3</div><button class="predict-btn" onclick="togglePredict('c2-3',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c2-4"><div class="cell-top"><div class="cell-label">No.4</div><button class="predict-btn" onclick="togglePredict('c2-4',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c2-5"><div class="cell-top"><div class="cell-label">No.5</div><button class="predict-btn" onclick="togglePredict('c2-5',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c2-6"><div class="cell-top"><div class="cell-label">No.6</div><button class="predict-btn" onclick="togglePredict('c2-6',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c2-7"><div class="cell-top"><div class="cell-label">No.7</div><button class="predict-btn" onclick="togglePredict('c2-7',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c2-8"><div class="cell-top"><div class="cell-label">No.8</div><button class="predict-btn" onclick="togglePredict('c2-8',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c2-9"><div class="cell-top"><div class="cell-label">No.9</div><button class="predict-btn" onclick="togglePredict('c2-9',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c2-1"><div class="cell-top"><div class="cell-label">No.1</div><button class="predict-btn" onclick="togglePredict('c2-1',this)">予想</button></div><select id="sel-c2-1" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c2-2"><div class="cell-top"><div class="cell-label">No.2</div><button class="predict-btn" onclick="togglePredict('c2-2',this)">予想</button></div><select id="sel-c2-2" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c2-3"><div class="cell-top"><div class="cell-label">No.3</div><button class="predict-btn" onclick="togglePredict('c2-3',this)">予想</button></div><select id="sel-c2-3" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c2-4"><div class="cell-top"><div class="cell-label">No.4</div><button class="predict-btn" onclick="togglePredict('c2-4',this)">予想</button></div><select id="sel-c2-4" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c2-5"><div class="cell-top"><div class="cell-label">No.5</div><button class="predict-btn" onclick="togglePredict('c2-5',this)">予想</button></div><select id="sel-c2-5" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c2-6"><div class="cell-top"><div class="cell-label">No.6</div><button class="predict-btn" onclick="togglePredict('c2-6',this)">予想</button></div><select id="sel-c2-6" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c2-7"><div class="cell-top"><div class="cell-label">No.7</div><button class="predict-btn" onclick="togglePredict('c2-7',this)">予想</button></div><select id="sel-c2-7" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c2-8"><div class="cell-top"><div class="cell-label">No.8</div><button class="predict-btn" onclick="togglePredict('c2-8',this)">予想</button></div><select id="sel-c2-8" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c2-9"><div class="cell-top"><div class="cell-label">No.9</div><button class="predict-btn" onclick="togglePredict('c2-9',this)">予想</button></div><select id="sel-c2-9" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
   </div>
 </div>
 
@@ -244,7 +244,7 @@
     <div class="set-label">SET 3</div>
     <div class="direction-wrap">
       <div class="direction-label">向き</div>
-      <select class="dir-sel">
+      <select id="dir-3" class="dir-sel">
         <option value="">選択...</option>
         <option>前向き</option>
         <option>後ろ向き</option>
@@ -253,26 +253,66 @@
   </div>
   <div class="store-wrap">
     <div class="store-label">店舗</div>
-    <input class="store-input" type="text" placeholder="店舗名を入力...">
+    <input id="store-3" class="store-input" type="text" placeholder="店舗名を入力...">
   </div>
   <div class="grid">
-    <div class="cell" id="c3-1"><div class="cell-top"><div class="cell-label">No.1</div><button class="predict-btn" onclick="togglePredict('c3-1',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c3-2"><div class="cell-top"><div class="cell-label">No.2</div><button class="predict-btn" onclick="togglePredict('c3-2',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c3-3"><div class="cell-top"><div class="cell-label">No.3</div><button class="predict-btn" onclick="togglePredict('c3-3',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c3-4"><div class="cell-top"><div class="cell-label">No.4</div><button class="predict-btn" onclick="togglePredict('c3-4',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c3-5"><div class="cell-top"><div class="cell-label">No.5</div><button class="predict-btn" onclick="togglePredict('c3-5',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c3-6"><div class="cell-top"><div class="cell-label">No.6</div><button class="predict-btn" onclick="togglePredict('c3-6',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c3-7"><div class="cell-top"><div class="cell-label">No.7</div><button class="predict-btn" onclick="togglePredict('c3-7',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c3-8"><div class="cell-top"><div class="cell-label">No.8</div><button class="predict-btn" onclick="togglePredict('c3-8',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
-    <div class="cell" id="c3-9"><div class="cell-top"><div class="cell-label">No.9</div><button class="predict-btn" onclick="togglePredict('c3-9',this)">予想</button></div><select class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c3-1"><div class="cell-top"><div class="cell-label">No.1</div><button class="predict-btn" onclick="togglePredict('c3-1',this)">予想</button></div><select id="sel-c3-1" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c3-2"><div class="cell-top"><div class="cell-label">No.2</div><button class="predict-btn" onclick="togglePredict('c3-2',this)">予想</button></div><select id="sel-c3-2" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c3-3"><div class="cell-top"><div class="cell-label">No.3</div><button class="predict-btn" onclick="togglePredict('c3-3',this)">予想</button></div><select id="sel-c3-3" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c3-4"><div class="cell-top"><div class="cell-label">No.4</div><button class="predict-btn" onclick="togglePredict('c3-4',this)">予想</button></div><select id="sel-c3-4" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c3-5"><div class="cell-top"><div class="cell-label">No.5</div><button class="predict-btn" onclick="togglePredict('c3-5',this)">予想</button></div><select id="sel-c3-5" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c3-6"><div class="cell-top"><div class="cell-label">No.6</div><button class="predict-btn" onclick="togglePredict('c3-6',this)">予想</button></div><select id="sel-c3-6" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c3-7"><div class="cell-top"><div class="cell-label">No.7</div><button class="predict-btn" onclick="togglePredict('c3-7',this)">予想</button></div><select id="sel-c3-7" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c3-8"><div class="cell-top"><div class="cell-label">No.8</div><button class="predict-btn" onclick="togglePredict('c3-8',this)">予想</button></div><select id="sel-c3-8" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
+    <div class="cell" id="c3-9"><div class="cell-top"><div class="cell-label">No.9</div><button class="predict-btn" onclick="togglePredict('c3-9',this)">予想</button></div><select id="sel-c3-9" class="char-sel"><option value="">— 未選択 —</option><option>寂雷</option><option>一二三</option><option>独歩</option><option>簓</option><option>盧笙</option><option>零</option><option>空却</option><option>十四</option><option>獄</option></select></div>
   </div>
 </div>
 
 <script>
+const SAVE_KEY = 'dossier-v1';
+
+function save() {
+  const data = {};
+  document.querySelectorAll('select, input[type=text]').forEach(el => {
+    if (el.id) data[el.id] = el.value;
+  });
+  document.querySelectorAll('.cell').forEach(cell => {
+    if (cell.id) data['predict-' + cell.id] = cell.classList.contains('predicted');
+  });
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+function restore() {
+  try {
+    const saved = localStorage.getItem(SAVE_KEY);
+    if (!saved) return;
+    const data = JSON.parse(saved);
+    Object.keys(data).forEach(k => {
+      if (k.startsWith('predict-')) {
+        const cell = document.getElementById(k.replace('predict-', ''));
+        if (cell && data[k]) cell.classList.add('predicted');
+      } else {
+        const el = document.getElementById(k);
+        if (el) el.value = data[k];
+      }
+    });
+  } catch(e) {}
+}
+
 function togglePredict(id, btn) {
   const cell = document.getElementById(id);
   cell.classList.toggle('predicted');
+  save();
 }
+
+// Attach save to all selects and inputs
+document.addEventListener('DOMContentLoaded', () => {
+  restore();
+  document.querySelectorAll('select, input[type=text]').forEach(el => {
+    el.addEventListener('change', save);
+    el.addEventListener('input', save);
+  });
+});
 </script>
 </body>
 </html>

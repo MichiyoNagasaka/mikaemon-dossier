@@ -16,6 +16,9 @@
     --predict: #3d1a1a;
     --predict-border: #c0392b;
   }
+  html, body {
+    background: #0a0a0f !important;
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     background: var(--bg);
@@ -62,12 +65,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 6px;
   }
   .set-label {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 1.1rem;
     letter-spacing: 0.15em;
     color: #ffffff;
+    flex-shrink: 0;
   }
   .direction-wrap { display: flex; align-items: center; gap: 6px; }
   .direction-label { font-size: 0.65rem; color: #aaaaaa; letter-spacing: 0.1em; }
@@ -86,7 +91,22 @@
   }
   .store-input::placeholder { color: #5a5a7a; }
   .store-input:focus { border-color: var(--accent); }
-  .reset-set-btn {
+  .cell-dir-sel {
+    background: transparent;
+    color: #aaaaaa;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 2px;
+    font-size: 0.6rem;
+    font-family: 'Noto Sans JP', sans-serif;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    outline: none;
+    width: 32px;
+    text-align: center;
+  }
+  .cell-dir-sel option { background: #1a1a2e; }
     background: transparent;
     border: 1px solid #444;
     color: #888;
@@ -314,12 +334,18 @@ function restore() {
   } catch(e) {}
 }
 
+function onCharChange(sel, cid) {
+  save();
+}
+
 function resetSet(s) {
   document.getElementById('dir-' + s).value = '';
   document.getElementById('store-' + s).value = '';
   for (let i = 1; i <= 9; i++) {
     const sel = document.getElementById('sel-c' + s + '-' + i);
     if (sel) sel.value = '';
+    const dirSel = document.getElementById('cdir-c' + s + '-' + i);
+    if (dirSel) dirSel.value = '';
     const cell = document.getElementById('c' + s + '-' + i);
     if (cell) cell.classList.remove('predicted');
   }

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>在庫数カウンター（個人用 v2）</title>
+<!-- version: v2.2 (confirm/promptを画面内ダイアログに置き換え) -->
 <style>
   :root {
     --ink: #2B2823;
@@ -25,19 +26,35 @@
   header {
     position: sticky; top: 0; z-index: 5;
     background: var(--bg);
-    padding: 12px 16px;
+    padding: 10px 16px;
     border-bottom: 1px solid var(--line);
-    display: flex; align-items: center; gap: 8px;
   }
-  header h1 { font-size: 17px; font-weight: 700; margin: 0; flex: 1; }
+  .hrow { display: flex; align-items: center; gap: 8px; }
+  .hrow + .hrow { margin-top: 8px; }
+  header h1 { font-size: 16px; font-weight: 700; margin: 0; flex: 1; min-width: 0; }
   #saveState { font-size: 11px; color: var(--muted); }
   #saveState.error { color: var(--danger); }
+  #eventSel {
+    flex: 1; min-width: 0; height: 36px; font-size: 16px; font-weight: 700;
+    border: 1px solid var(--ink); border-radius: 4px; background: #fff; color: var(--ink); padding: 0 8px;
+  }
   .btn-sm {
     border: 1px solid var(--ink); background: #fff; color: var(--ink);
-    border-radius: 4px; padding: 6px 10px; font-size: 13px; font-weight: 700;
+    border-radius: 4px; padding: 6px 10px; font-size: 13px; font-weight: 700; white-space: nowrap;
   }
   .btn-sm.on { background: var(--ink); color: var(--bg); }
   .wrap { max-width: 640px; margin: 0 auto; padding: 16px; }
+
+  .ev-panel {
+    border: 1px solid var(--ink); border-radius: 4px; background: #fff; padding: 10px; margin-bottom: 16px;
+  }
+  .ev-panel h2 { font-size: 13px; margin: 0 0 8px; }
+  .ev-panel .row { display: flex; gap: 6px; align-items: center; }
+  .ev-head {
+    margin: 20px 0 10px; padding: 8px 12px; font-size: 15px; font-weight: 700;
+    background: var(--ink); color: var(--bg); border-radius: 4px;
+  }
+  .ev-head:first-child { margin-top: 0; }
 
   section.prize {
     border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin-bottom: 20px;
@@ -153,7 +170,7 @@
   .manage button.danger { background: #fff; color: var(--danger); border: 1px solid var(--danger); }
   .manage button.plain { background: #fff; color: var(--ink); border: 1px solid var(--ink); }
 
-  .partner-add { display: flex; gap: 8px; margin-bottom: 16px; }
+  .partner-add { display: flex; gap: 8px; margin-bottom: 12px; }
   .partner-add input {
     flex: 1; min-width: 0; font-size: 16px; padding: 10px;
     border: 1px solid var(--line); border-radius: 4px; background: #fff;
@@ -217,10 +234,16 @@
 <body>
 
 <header>
-  <h1>在庫数カウンター（個人用 v2）</h1>
-  <span id="saveState"></span>
-  <button id="helpBtn" class="btn-sm" aria-label="使い方">?</button>
-  <button id="editBtn" class="btn-sm">編集</button>
+  <div class="hrow">
+    <h1>在庫数カウンター（個人用 v2）</h1>
+    <span id="saveState"></span>
+    <button id="helpBtn" class="btn-sm" aria-label="使い方">?</button>
+    <button id="editBtn" class="btn-sm">編集</button>
+  </div>
+  <div class="hrow" id="eventBar">
+    <select id="eventSel" aria-label="イベントを選ぶ"></select>
+    <button id="addEventBtn" class="btn-sm">＋ イベント</button>
+  </div>
 </header>
 
 <div class="wrap" id="view"></div>
@@ -254,6 +277,7 @@ const DB_NAME = "kuji-tally-personal-v2";
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const newItem = (name) => ({ id: uid(), name: name || "", count: 0, calling: 0, photoId: null });
 const nm = (item) => item.name || "(名称未設定)";
+const evName = (ev) => ev.name || "(名称未設定)";
 
 function h(tag, props, ...kids) {
   const el = document.createElement(tag);
@@ -279,7 +303,8 @@ function parseNum(str) {
 }
 
 /* ========== 状態 ========== */
-let state = null;          // { prizes, partners, allocs }
+/* state = { events: [ { id, name, prizes, partners, allocs } ], currentId } */
+let state = null;
 let photos = {};           // photoId -> dataURL
 let db = null;
 let tab = "stock";
@@ -289,23 +314,28 @@ let pendingPhotoItemId = null;
 const openItems = new Set();
 const openPartners = new Set();
 
-function defaultState() {
+const cur = () => state.events.find((e) => e.id === state.currentId) || state.events[0];
+
+function defaultPrizes() {
   const mk = (title, color, names) => ({ id: uid(), title, color, items: names.map(newItem) });
-  return {
-    prizes: [
-      mk("B賞", 0, ["ブクロ", "ヨコハマ", "シブヤ", "シンジュク", "ナゴヤ"]),
-      mk("C賞", 1, ["一郎","二郎","三郎","左馬刻","銃兎","理鶯","乱数","幻太郎","帝統","寂雷","一二三","独歩","盧笙","空却","十四","獄"]),
-      mk("D賞", 2, ["ブクロ", "ヨコハマ", "シブヤ", "シンジュク", "ナゴヤ"]),
-      mk("E賞", 3, ["ブクロ","一郎","二郎","三郎","ヨコハマ","左馬刻","銃兎","理鶯","シブヤ","乱数","幻太郎","帝統","シンジュク","寂雷","一二三","独歩","盧笙","ナゴヤ","空却","十四","獄"])
-    ],
-    partners: [],
-    allocs: []
-  };
+  return [
+    mk("B賞", 0, ["ブクロ", "ヨコハマ", "シブヤ", "シンジュク", "ナゴヤ"]),
+    mk("C賞", 1, ["一郎","二郎","三郎","左馬刻","銃兎","理鶯","乱数","幻太郎","帝統","寂雷","一二三","独歩","盧笙","空却","十四","獄"]),
+    mk("D賞", 2, ["ブクロ", "ヨコハマ", "シブヤ", "シンジュク", "ナゴヤ"]),
+    mk("E賞", 3, ["ブクロ","一郎","二郎","三郎","ヨコハマ","左馬刻","銃兎","理鶯","シブヤ","乱数","幻太郎","帝統","シンジュク","寂雷","一二三","独歩","盧笙","ナゴヤ","空却","十四","獄"])
+  ];
+}
+function newEvent(name, prizes) {
+  return { id: uid(), name: name, prizes: prizes || [], partners: [], allocs: [] };
+}
+function defaultState() {
+  const ev = newEvent("イベント1", defaultPrizes());
+  return { events: [ev], currentId: ev.id };
 }
 
-function normalizeState(s) {
-  const out = { prizes: [], partners: [], allocs: [] };
-  (Array.isArray(s.prizes) ? s.prizes : []).forEach((p) => {
+function normalizeEvent(e, fallbackName) {
+  const out = { id: String(e.id || uid()), name: String(e.name !== undefined ? e.name : fallbackName), prizes: [], partners: [], allocs: [] };
+  (Array.isArray(e.prizes) ? e.prizes : []).forEach((p) => {
     out.prizes.push({
       id: String(p.id || uid()),
       title: String(p.title || ""),
@@ -319,10 +349,10 @@ function normalizeState(s) {
       }))
     });
   });
-  (Array.isArray(s.partners) ? s.partners : []).forEach((p) => {
+  (Array.isArray(e.partners) ? e.partners : []).forEach((p) => {
     out.partners.push({ id: String(p.id || uid()), name: String(p.name || "") });
   });
-  (Array.isArray(s.allocs) ? s.allocs : []).forEach((a) => {
+  (Array.isArray(e.allocs) ? e.allocs : []).forEach((a) => {
     out.allocs.push({
       id: String(a.id || uid()),
       itemId: String(a.itemId),
@@ -332,6 +362,18 @@ function normalizeState(s) {
     });
   });
   return out;
+}
+/* 新形式(events)も旧形式(prizes/partners/allocs直下)も受け付ける */
+function normalizeState(s) {
+  let events;
+  if (Array.isArray(s.events)) {
+    events = s.events.map((e, i) => normalizeEvent(e, "イベント" + (i + 1)));
+  } else {
+    events = [normalizeEvent({ id: uid(), name: "イベント1", prizes: s.prizes, partners: s.partners, allocs: s.allocs }, "イベント1")];
+  }
+  if (events.length === 0) events = [newEvent("イベント1", [])];
+  const currentId = events.some((e) => e.id === s.currentId) ? s.currentId : events[0].id;
+  return { events: events, currentId: currentId };
 }
 
 /* ========== IndexedDB ========== */
@@ -408,22 +450,74 @@ async function photoDrop(id) {
   try { await idbDelete("photos", id); } catch (e) { /* 無視 */ }
 }
 
-/* ========== 検索・集計 ========== */
-const partnerOf = (id) => state.partners.find((p) => p.id === id);
-function findItem(id) {
-  for (const prize of state.prizes) {
+/* ========== 検索・集計(イベント単位) ========== */
+const partnerOf = (ev, id) => ev.partners.find((p) => p.id === id);
+function findItem(ev, id) {
+  for (const prize of ev.prizes) {
     const item = prize.items.find((i) => i.id === id);
     if (item) return { prize, item };
   }
   return null;
 }
-const unfulfilled = (itemId) =>
-  state.allocs.filter((a) => a.itemId === itemId && !a.delivered).reduce((s, a) => s + a.qty, 0);
-function warnText(item) {
-  const un = unfulfilled(item.id);
+function findItemAny(id) {
+  for (const ev of state.events) {
+    const f = findItem(ev, id);
+    if (f) return { ev, prize: f.prize, item: f.item };
+  }
+  return null;
+}
+const unfulfilled = (ev, itemId) =>
+  ev.allocs.filter((a) => a.itemId === itemId && !a.delivered).reduce((s, a) => s + a.qty, 0);
+function warnText(ev, item) {
+  const un = unfulfilled(ev, item.id);
   if (un > 0 && un > item.count) return "⚠ 未渡し合計" + un + "個が在庫" + item.count + "個を超えています";
   if (item.count < 0) return "⚠ 在庫がマイナスです";
   return "";
+}
+function itemOrder(ev, itemId) {
+  let n = 0;
+  for (const pr of ev.prizes) for (const it of pr.items) { if (it.id === itemId) return n; n++; }
+  return 9999;
+}
+
+/* ========== 画面内ダイアログ(confirm/promptの代わり) ==========
+   ホーム画面に追加した状態や、このチャットのプレビューなど、一部の環境では
+   window.confirm / window.prompt が動かない(何も表示されない)ため使わない。 */
+function askConfirm(message, okLabel) {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v) => { if (done) return; done = true; resolve(v); ov.remove(); };
+    const ov = h("div", { class: "overlay", onclick: (e) => { if (e.target === ov) finish(false); } },
+      h("div", { class: "viewer" },
+        h("p", { style: "font-size:14px;line-height:1.7;white-space:pre-wrap;margin:0 0 14px" }, message),
+        h("div", { class: "viewer-btns" },
+          h("button", { onclick: () => finish(false) }, "キャンセル"),
+          h("button", { class: "danger", onclick: () => finish(true) }, okLabel || "削除する")
+        )
+      )
+    );
+    document.body.append(ov);
+  });
+}
+function askText(title, defaultValue) {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v) => { if (done) return; done = true; resolve(v); ov.remove(); };
+    const input = h("input", { class: "name-input", style: "width:100%", value: defaultValue || "", "aria-label": title,
+      onkeydown: (e) => { if (e.key === "Enter") finish(input.value); } });
+    const ov = h("div", { class: "overlay", onclick: (e) => { if (e.target === ov) finish(null); } },
+      h("div", { class: "viewer" },
+        h("div", { class: "viewer-name" }, title),
+        input,
+        h("div", { class: "viewer-btns", style: "margin-top:12px" },
+          h("button", { onclick: () => finish(null) }, "キャンセル"),
+          h("button", { onclick: () => finish(input.value) }, "OK")
+        )
+      )
+    );
+    document.body.append(ov);
+    setTimeout(() => input.focus(), 0);
+  });
 }
 
 /* ========== トースト ========== */
@@ -443,62 +537,62 @@ function moveIn(arr, idx, dir) {
   const tmp = arr[idx]; arr[idx] = arr[to]; arr[to] = tmp;
   commit();
 }
-function removeItemData(item) {
+function removeItemData(ev, item) {
   if (item.photoId) photoDrop(item.photoId);
-  state.allocs = state.allocs.filter((a) => a.itemId !== item.id);
+  ev.allocs = ev.allocs.filter((a) => a.itemId !== item.id);
   openItems.delete(item.id);
 }
-function deleteItem(prize, item) {
-  if (!window.confirm("景品「" + nm(item) + "」を削除しますか？\n登録済みの取引相手への割当も消えます。この操作は取り消せません。")) return;
-  removeItemData(item);
+async function deleteItem(ev, prize, item) {
+  if (!(await askConfirm("景品「" + nm(item) + "」を削除しますか？\n登録済みの取引相手への割当も消えます。この操作は取り消せません。"))) return;
+  removeItemData(ev, item);
   prize.items = prize.items.filter((i) => i.id !== item.id);
   commit();
 }
-function deletePrize(prize) {
-  if (!window.confirm("賞「" + (prize.title || "(名称未設定)") + "」を削除しますか？\n中の景品と、その割当も全て消えます。この操作は取り消せません。")) return;
-  prize.items.forEach(removeItemData);
-  state.prizes = state.prizes.filter((p) => p.id !== prize.id);
+async function deletePrize(ev, prize) {
+  if (!(await askConfirm("賞「" + (prize.title || "(名称未設定)") + "」を削除しますか？\n中の景品と、その割当も全て消えます。この操作は取り消せません。"))) return;
+  prize.items.forEach((it) => removeItemData(ev, it));
+  ev.prizes = ev.prizes.filter((p) => p.id !== prize.id);
   commit();
 }
-function deletePartner(p) {
-  if (!window.confirm("お取引相手「" + (p.name || "(名称未設定)") + "」を削除しますか？\n登録済みの割当も消えます（渡し済みの在庫数は元に戻りません）。")) return;
-  state.allocs = state.allocs.filter((a) => a.partnerId !== p.id);
-  state.partners = state.partners.filter((x) => x.id !== p.id);
+async function deletePartner(ev, p) {
+  if (!(await askConfirm("お取引相手「" + (p.name || "(名称未設定)") + "」を削除しますか？\n登録済みの割当も消えます（渡し済みの在庫数は元に戻りません）。"))) return;
+  ev.allocs = ev.allocs.filter((a) => a.partnerId !== p.id);
+  ev.partners = ev.partners.filter((x) => x.id !== p.id);
   openPartners.delete(p.id);
   commit();
 }
-function deleteAlloc(a) {
+async function deleteAlloc(ev, a) {
   const msg = a.delivered
     ? "この割当を削除しますか？\n渡し済みのため、在庫数は元に戻りません。戻したい場合は先にチェックを外してください。"
     : "この割当を削除しますか？";
-  if (!window.confirm(msg)) return;
-  state.allocs = state.allocs.filter((x) => x.id !== a.id);
+  if (!(await askConfirm(msg))) return;
+  ev.allocs = ev.allocs.filter((x) => x.id !== a.id);
   commit();
 }
-function addAlloc(item, partnerId, qty) {
+function addAlloc(ev, item, partnerId, qty) {
   if (!partnerId) { toast("お取引相手を選んでください"); return; }
   const n = Math.max(1, qty);
-  const existing = state.allocs.find((a) => a.itemId === item.id && a.partnerId === partnerId && !a.delivered);
+  const existing = ev.allocs.find((a) => a.itemId === item.id && a.partnerId === partnerId && !a.delivered);
   if (existing) existing.qty += n;
-  else state.allocs.push({ id: uid(), itemId: item.id, partnerId, qty: n, delivered: false });
+  else ev.allocs.push({ id: uid(), itemId: item.id, partnerId, qty: n, delivered: false });
   openItems.add(item.id);
-  const w = warnText(item);
+  const w = warnText(ev, item);
   if (w) toast("「" + nm(item) + "」" + w);
   commit();
 }
-function setAllocQty(a, value) {
-  const f = findItem(a.itemId);
+function setAllocQty(ev, a, value) {
+  const f = findItem(ev, a.itemId);
   const n = Math.max(1, value);
   if (f && a.delivered) f.item.count += a.qty - n;
   a.qty = n;
   if (f) {
-    const w = warnText(f.item);
+    const w = warnText(ev, f.item);
     if (w) toast("「" + nm(f.item) + "」" + w);
   }
   commit();
 }
-function setDelivered(a, checked) {
-  const f = findItem(a.itemId);
+function setDelivered(ev, a, checked) {
+  const f = findItem(ev, a.itemId);
   if (!f) return;
   if (checked && !a.delivered) {
     f.item.count -= a.qty;
@@ -508,6 +602,41 @@ function setDelivered(a, checked) {
     f.item.count += a.qty;
     a.delivered = false;
   }
+  commit();
+}
+
+/* ---- イベント ---- */
+function selectEvent(id) {
+  if (!state.events.some((e) => e.id === id)) return;
+  state.currentId = id;
+  commit();
+  window.scrollTo(0, 0);
+}
+async function addEvent() {
+  const v = await askText("新しいイベントの名前（例: ○○くじ）", "");
+  if (v === null) return;
+  const name = v.trim();
+  if (!name) { toast("名前を入力してください"); return; }
+  const ev = newEvent(name, []);
+  state.events.push(ev);
+  state.currentId = ev.id;
+  tab = "stock";
+  editMode = true;
+  toast("「" + name + "」を追加しました。「賞を追加」から作成してください");
+  commit();
+  window.scrollTo(0, 0);
+}
+function renameEvent(ev, value) {
+  ev.name = value.trim();
+  commit();
+}
+async function deleteEvent(ev) {
+  if (state.events.length <= 1) { toast("最後の1つのイベントは削除できません"); return; }
+  if (!(await askConfirm("イベント「" + evName(ev) + "」を削除しますか？\nこのイベントの賞・景品・写真・お取引相手・割当が全て消えます。この操作は取り消せません。"))) return;
+  ev.prizes.forEach((p) => p.items.forEach((it) => removeItemData(ev, it)));
+  ev.partners.forEach((p) => openPartners.delete(p.id));
+  state.events = state.events.filter((e) => e.id !== ev.id);
+  if (state.currentId === ev.id) state.currentId = state.events[0].id;
   commit();
 }
 
@@ -574,7 +703,7 @@ function pickPhoto(itemId) {
 document.getElementById("photoInput").onchange = async (e) => {
   const input = e.target;
   const file = input.files && input.files[0];
-  const f = pendingPhotoItemId && findItem(pendingPhotoItemId);
+  const f = pendingPhotoItemId && findItemAny(pendingPhotoItemId);
   pendingPhotoItemId = null;
   try {
     if (!file || !f) return;
@@ -641,40 +770,58 @@ function counterEl(val, min, onSet, accent, small, calling) {
   return h("div", { class: "counter" + (small ? " small" : "") }, minus, input, plus);
 }
 
-function allocPanel(item, accent) {
+function allocPanel(ev, item) {
   const box = h("div", { class: "alloc-panel" });
-  const rows = state.allocs.filter((a) => a.itemId === item.id);
+  const rows = ev.allocs.filter((a) => a.itemId === item.id);
   if (rows.length === 0) box.append(h("div", { class: "empty" }, "登録されたお取引相手はいません"));
   rows.forEach((a) => {
-    const p = partnerOf(a.partnerId);
+    const p = partnerOf(ev, a.partnerId);
     box.append(h("div", { class: "alloc-row" },
       h("span", { class: "pname" }, p ? (p.name || "(名称未設定)") : "(削除済みの相手)"),
       h("input", { class: "qty", type: "text", inputmode: "numeric", value: String(a.qty),
-        "aria-label": "渡す数", onchange: (e) => setAllocQty(a, parseNum(e.target.value)) }),
+        "aria-label": "渡す数", onchange: (e) => setAllocQty(ev, a, parseNum(e.target.value)) }),
       h("label", { class: "chk" },
-        h("input", { type: "checkbox", checked: a.delivered, onchange: (e) => setDelivered(a, e.target.checked) }),
+        h("input", { type: "checkbox", checked: a.delivered, onchange: (e) => setDelivered(ev, a, e.target.checked) }),
         "渡し済み"),
-      h("button", { class: "del-btn", style: "width:32px;height:32px", "aria-label": "割当を削除", onclick: () => deleteAlloc(a) }, "✕")
+      h("button", { class: "del-btn", style: "width:32px;height:32px", "aria-label": "割当を削除", onclick: () => deleteAlloc(ev, a) }, "✕")
     ));
   });
-  if (state.partners.length === 0) {
-    box.append(h("p", { class: "hint" }, "先に「お取引相手」タブで相手を登録してください"));
+  if (ev.partners.length === 0) {
+    box.append(h("p", { class: "hint" }, "先に「お取引相手」タブで、このイベントの相手を登録してください"));
   } else {
     const sel = h("select", {}, h("option", { value: "" }, "相手を選ぶ"),
-      state.partners.map((p) => h("option", { value: p.id }, p.name || "(名称未設定)")));
+      ev.partners.map((p) => h("option", { value: p.id }, p.name || "(名称未設定)")));
     const qty = h("input", { type: "text", inputmode: "numeric", value: "1", "aria-label": "数" });
     box.append(h("div", { class: "alloc-add" }, sel, qty,
-      h("button", { onclick: () => addAlloc(item, sel.value, parseNum(qty.value)) }, "追加")));
+      h("button", { onclick: () => addAlloc(ev, item, sel.value, parseNum(qty.value)) }, "追加")));
   }
   return box;
 }
 
 /* ========== 在庫タブ ========== */
-function renderStock(root) {
-  const wrap = h("div", {});
-  if (state.prizes.length === 0) wrap.append(h("p", { class: "empty" }, "賞がありません。「賞を追加」から作成してください。"));
+function eventPanel(ev) {
+  const idx = state.events.indexOf(ev);
+  return h("div", { class: "ev-panel" },
+    h("h2", {}, "イベント設定"),
+    h("div", { class: "row" },
+      h("input", { class: "name-input", value: ev.name, placeholder: "イベント名", "data-id": ev.id,
+        "aria-label": "イベント名", onchange: (e) => renameEvent(ev, e.target.value) }),
+      h("button", { class: "mv-btn", "aria-label": "イベントを前へ", disabled: idx === 0, onclick: () => moveIn(state.events, idx, -1) }, "↑"),
+      h("button", { class: "mv-btn", "aria-label": "イベントを後ろへ", disabled: idx === state.events.length - 1, onclick: () => moveIn(state.events, idx, 1) }, "↓"),
+      h("button", { class: "del-btn", "aria-label": "イベントを削除", onclick: () => deleteEvent(ev) }, "✕")
+    )
+  );
+}
 
-  state.prizes.forEach((prize, pi) => {
+function renderStock(root) {
+  const ev = cur();
+  const wrap = h("div", {});
+  if (editMode) wrap.append(eventPanel(ev));
+  if (ev.prizes.length === 0) wrap.append(h("p", { class: "empty" }, editMode
+    ? "賞がありません。下の「賞を追加」から作成してください。"
+    : "賞がありません。右上の「編集」を押して、賞を追加してください。"));
+
+  ev.prizes.forEach((prize, pi) => {
     const pal = PALETTE[prize.color % PALETTE.length];
     const sec = h("section", { class: "prize" });
     const title = h("div", { class: "section-title", style: "background-color:" + pal.accent });
@@ -682,10 +829,10 @@ function renderStock(root) {
       title.append(
         h("input", { class: "title-input", value: prize.title, placeholder: "賞の名前", "data-id": prize.id,
           onchange: (e) => { prize.title = e.target.value.trim(); commit(); } }),
-        h("button", { class: "tbtn mv", "aria-label": "賞を上へ", disabled: pi === 0, onclick: () => moveIn(state.prizes, pi, -1) }, "↑"),
-        h("button", { class: "tbtn mv", "aria-label": "賞を下へ", disabled: pi === state.prizes.length - 1, onclick: () => moveIn(state.prizes, pi, 1) }, "↓"),
+        h("button", { class: "tbtn mv", "aria-label": "賞を上へ", disabled: pi === 0, onclick: () => moveIn(ev.prizes, pi, -1) }, "↑"),
+        h("button", { class: "tbtn mv", "aria-label": "賞を下へ", disabled: pi === ev.prizes.length - 1, onclick: () => moveIn(ev.prizes, pi, 1) }, "↓"),
         h("button", { class: "tbtn", onclick: () => { prize.color = (prize.color + 1) % PALETTE.length; commit(); } }, "色"),
-        h("button", { class: "tbtn", onclick: () => deletePrize(prize) }, "削除")
+        h("button", { class: "tbtn", onclick: () => deletePrize(ev, prize) }, "削除")
       );
     } else {
       title.textContent = prize.title || "(名称未設定)";
@@ -703,7 +850,7 @@ function renderStock(root) {
             onchange: (e) => { item.name = e.target.value.trim(); commit(); } }),
           h("button", { class: "mv-btn", "aria-label": "景品を上へ", disabled: ii === 0, onclick: () => moveIn(prize.items, ii, -1) }, "↑"),
           h("button", { class: "mv-btn", "aria-label": "景品を下へ", disabled: ii === prize.items.length - 1, onclick: () => moveIn(prize.items, ii, 1) }, "↓"),
-          h("button", { class: "del-btn", "aria-label": "景品を削除", onclick: () => deleteItem(prize, item) }, "✕")
+          h("button", { class: "del-btn", "aria-label": "景品を削除", onclick: () => deleteItem(ev, prize, item) }, "✕")
         ));
       } else {
         main.append(h("div", { class: "line" },
@@ -714,14 +861,14 @@ function renderStock(root) {
           h("span", {}, "└ 声掛け中"),
           counterEl(item.calling, 0, (v) => { item.calling = Math.max(0, v); commit(); }, pal.accent, true, true)
         ));
-        const w = warnText(item);
+        const w = warnText(ev, item);
         if (w) main.append(h("div", { class: "warn" }, w));
-        const n = state.allocs.filter((a) => a.itemId === item.id).length;
+        const n = ev.allocs.filter((a) => a.itemId === item.id).length;
         const open = openItems.has(item.id);
         main.append(h("button", { class: "toggle-alloc",
           onclick: () => { if (open) openItems.delete(item.id); else openItems.add(item.id); render(); } },
           "お取引相手（" + n + "） " + (open ? "▲" : "▼")));
-        if (open) main.append(allocPanel(item, pal.accent));
+        if (open) main.append(allocPanel(ev, item));
       }
       row.append(main);
       list.append(row);
@@ -737,84 +884,83 @@ function renderStock(root) {
   if (editMode) {
     wrap.append(h("button", { class: "add-btn big",
       onclick: () => {
-        const p = { id: uid(), title: "", color: state.prizes.length % PALETTE.length, items: [] };
-        state.prizes.push(p); focusId = p.id; commit();
+        const p = { id: uid(), title: "", color: ev.prizes.length % PALETTE.length, items: [] };
+        ev.prizes.push(p); focusId = p.id; commit();
       } }, "＋ 賞を追加"));
   }
 
   wrap.append(h("div", { class: "manage" },
     h("h2", {}, "データ管理"),
-    h("button", { class: "plain", onclick: exportText }, "テキストファイルに出力"),
-    h("button", { class: "plain", onclick: exportBackup }, "バックアップを書き出す（JSON）"),
+    h("button", { class: "plain", onclick: exportText }, "テキストファイルに出力（全イベント）"),
+    h("button", { class: "plain", onclick: exportBackup }, "バックアップを書き出す（JSON・全イベント）"),
     h("button", { class: "plain", onclick: () => document.getElementById("importInput").click() }, "バックアップを読み込む"),
-    h("button", { class: "danger", onclick: resetCounts }, "在庫数・声掛け中を全て0にリセット"),
+    h("button", { class: "danger", onclick: resetCounts }, "「" + evName(ev) + "」の在庫数・声掛け中を0にリセット"),
     h("p", { class: "hint" }, "iPhoneでは「ホーム画面に追加」して使うと、保存データが消えにくくなります。定期的にバックアップの書き出しもおすすめします。")
   ));
   root.append(wrap);
 }
 
-/* ========== お取引相手タブ ========== */
-function itemOrder(itemId) {
-  let n = 0;
-  for (const pr of state.prizes) for (const it of pr.items) { if (it.id === itemId) return n; n++; }
-  return 9999;
-}
+/* ========== お取引相手タブ(全イベントをまとめて表示) ========== */
 function renderPartners(root) {
   const wrap = h("div", {});
-  const input = h("input", { type: "text", placeholder: "お取引相手の名前", "aria-label": "お取引相手の名前" });
-  const add = () => {
-    const name = input.value.trim();
-    if (!name) { toast("名前を入力してください"); return; }
-    const p = { id: uid(), name };
-    state.partners.push(p);
-    openPartners.add(p.id);
-    commit();
-  };
-  input.onkeydown = (e) => { if (e.key === "Enter") add(); };
-  wrap.append(h("div", { class: "partner-add" }, input, h("button", { onclick: add }, "追加")));
+  state.events.forEach((ev) => {
+    wrap.append(h("div", { class: "ev-head" }, "◆ " + evName(ev)));
 
-  if (state.partners.length === 0) wrap.append(h("p", { class: "empty" }, "お取引相手はまだ登録されていません"));
+    const input = h("input", { type: "text", placeholder: "お取引相手の名前を追加", "aria-label": evName(ev) + "のお取引相手の名前" });
+    const add = () => {
+      const name = input.value.trim();
+      if (!name) { toast("名前を入力してください"); return; }
+      const p = { id: uid(), name };
+      ev.partners.push(p);
+      openPartners.add(p.id);
+      commit();
+    };
+    input.onkeydown = (e) => { if (e.key === "Enter") add(); };
+    wrap.append(h("div", { class: "partner-add" }, input, h("button", { onclick: add }, "追加")));
 
-  state.partners.forEach((p) => {
-    const mine = state.allocs.filter((a) => a.partnerId === p.id).sort((a, b) => itemOrder(a.itemId) - itemOrder(b.itemId));
-    const pending = mine.filter((a) => !a.delivered).reduce((s, a) => s + a.qty, 0);
-    const open = openPartners.has(p.id);
-    const card = h("div", { class: "pcard" });
-    card.append(h("button", { class: "pcard-head",
-      onclick: () => { if (open) openPartners.delete(p.id); else openPartners.add(p.id); render(); } },
-      h("span", {}, (p.name || "(名称未設定)") + " " + (open ? "▲" : "▼")),
-      h("span", { class: "badge" }, "未渡し " + pending + "個")
-    ));
-    if (open) {
-      const body = h("div", { class: "pcard-body" });
-      if (mine.length === 0) body.append(h("div", { class: "empty" }, "渡す景品はありません"));
-      mine.forEach((a) => {
-        const f = findItem(a.itemId);
-        if (!f) return;
-        const w = !a.delivered && unfulfilled(f.item.id) > f.item.count ? "⚠ 在庫不足（在庫 " + f.item.count + "個）" : "";
-        body.append(h("div", { class: "prow" },
-          thumbEl(f.item, false, true),
-          h("div", { class: "info" },
-            h("div", { class: "ptitle" }, f.prize.title || "(名称未設定)"),
-            h("div", { class: "iname" }, nm(f.item)),
-            w && h("div", { class: "warn", style: "margin-top:2px" }, w)
-          ),
-          h("span", { class: "pqty" }, "×" + a.qty),
-          h("label", { class: "chk" },
-            h("input", { type: "checkbox", checked: a.delivered, onchange: (e) => setDelivered(a, e.target.checked) }),
-            "渡し済み")
-        ));
-      });
-      body.append(h("div", { class: "pactions" },
-        h("button", { onclick: () => {
-          const v = window.prompt("お取引相手の名前", p.name);
-          if (v !== null && v.trim()) { p.name = v.trim(); commit(); }
-        } }, "名前を変更"),
-        h("button", { class: "danger", onclick: () => deletePartner(p) }, "この相手を削除")
+    if (ev.partners.length === 0) wrap.append(h("p", { class: "empty" }, "お取引相手はまだ登録されていません"));
+
+    ev.partners.forEach((p) => {
+      const mine = ev.allocs.filter((a) => a.partnerId === p.id).sort((a, b) => itemOrder(ev, a.itemId) - itemOrder(ev, b.itemId));
+      const pending = mine.filter((a) => !a.delivered).reduce((s, a) => s + a.qty, 0);
+      const open = openPartners.has(p.id);
+      const card = h("div", { class: "pcard" });
+      card.append(h("button", { class: "pcard-head",
+        onclick: () => { if (open) openPartners.delete(p.id); else openPartners.add(p.id); render(); } },
+        h("span", {}, (p.name || "(名称未設定)") + " " + (open ? "▲" : "▼")),
+        h("span", { class: "badge" }, "未渡し " + pending + "個")
       ));
-      card.append(body);
-    }
-    wrap.append(card);
+      if (open) {
+        const body = h("div", { class: "pcard-body" });
+        if (mine.length === 0) body.append(h("div", { class: "empty" }, "渡す景品はありません"));
+        mine.forEach((a) => {
+          const f = findItem(ev, a.itemId);
+          if (!f) return;
+          const w = !a.delivered && unfulfilled(ev, f.item.id) > f.item.count ? "⚠ 在庫不足（在庫 " + f.item.count + "個）" : "";
+          body.append(h("div", { class: "prow" },
+            thumbEl(f.item, false, true),
+            h("div", { class: "info" },
+              h("div", { class: "ptitle" }, f.prize.title || "(名称未設定)"),
+              h("div", { class: "iname" }, nm(f.item)),
+              w && h("div", { class: "warn", style: "margin-top:2px" }, w)
+            ),
+            h("span", { class: "pqty" }, "×" + a.qty),
+            h("label", { class: "chk" },
+              h("input", { type: "checkbox", checked: a.delivered, onchange: (e) => setDelivered(ev, a, e.target.checked) }),
+              "渡し済み")
+          ));
+        });
+        body.append(h("div", { class: "pactions" },
+          h("button", { onclick: async () => {
+            const v = await askText("お取引相手の名前", p.name);
+            if (v !== null && v.trim()) { p.name = v.trim(); commit(); }
+          } }, "名前を変更"),
+          h("button", { class: "danger", onclick: () => deletePartner(ev, p) }, "この相手を削除")
+        ));
+        card.append(body);
+      }
+      wrap.append(card);
+    });
   });
   root.append(wrap);
 }
@@ -834,27 +980,32 @@ function exportText() {
   L.push("在庫数一覧（個人用）");
   L.push("出力日: " + new Date().toLocaleString("ja-JP"));
   L.push("");
-  state.prizes.forEach((prize) => {
-    L.push("【" + (prize.title || "名称未設定") + "】");
-    prize.items.forEach((item) => L.push(nm(item) + ": " + item.count + "（声掛け中: " + item.calling + "）"));
+  state.events.forEach((ev) => {
+    L.push("◆◆ " + evName(ev) + " ◆◆");
     L.push("");
-  });
-  L.push("【お取引相手別 渡す景品】");
-  if (state.partners.length === 0) L.push("(なし)");
-  state.partners.forEach((p) => {
-    L.push("■ " + (p.name || "名称未設定"));
-    const mine = state.allocs.filter((a) => a.partnerId === p.id).sort((a, b) => itemOrder(a.itemId) - itemOrder(b.itemId));
-    if (mine.length === 0) L.push("  (なし)");
-    mine.forEach((a) => {
-      const f = findItem(a.itemId);
-      if (!f) return;
-      L.push("  " + (f.prize.title || "名称未設定") + " " + nm(f.item) + " ×" + a.qty + (a.delivered ? "（渡し済み）" : ""));
+    ev.prizes.forEach((prize) => {
+      L.push("【" + (prize.title || "名称未設定") + "】");
+      prize.items.forEach((item) => L.push(nm(item) + ": " + item.count + "（声掛け中: " + item.calling + "）"));
+      L.push("");
     });
+    L.push("【お取引相手別 渡す景品】");
+    if (ev.partners.length === 0) L.push("(なし)");
+    ev.partners.forEach((p) => {
+      L.push("■ " + (p.name || "名称未設定"));
+      const mine = ev.allocs.filter((a) => a.partnerId === p.id).sort((a, b) => itemOrder(ev, a.itemId) - itemOrder(ev, b.itemId));
+      if (mine.length === 0) L.push("  (なし)");
+      mine.forEach((a) => {
+        const f = findItem(ev, a.itemId);
+        if (!f) return;
+        L.push("  " + (f.prize.title || "名称未設定") + " " + nm(f.item) + " ×" + a.qty + (a.delivered ? "（渡し済み）" : ""));
+      });
+    });
+    L.push("");
   });
   download("在庫数_個人用_" + stamp() + ".txt", new Blob([L.join("\n")], { type: "text/plain;charset=utf-8" }));
 }
 function exportBackup() {
-  const data = { app: "kuji-tally-personal", version: 2, exportedAt: new Date().toISOString(), state: state, photos: photos };
+  const data = { app: "kuji-tally-personal", version: 3, exportedAt: new Date().toISOString(), state: state, photos: photos };
   download("kuji-tally-backup_" + stamp() + ".json", new Blob([JSON.stringify(data)], { type: "application/json" }));
 }
 document.getElementById("importInput").onchange = async (e) => {
@@ -863,8 +1014,10 @@ document.getElementById("importInput").onchange = async (e) => {
   if (!file) return;
   try {
     const data = JSON.parse(await file.text());
-    if (!data || data.version !== 2 || !data.state || !Array.isArray(data.state.prizes)) throw new Error("バックアップファイルの形式が違います");
-    if (!window.confirm("現在のデータを全て、このバックアップの内容で置き換えます。よろしいですか？")) return;
+    const okShape = data && (data.version === 3 || data.version === 2) && data.state &&
+      (Array.isArray(data.state.events) || Array.isArray(data.state.prizes));
+    if (!okShape) throw new Error("バックアップファイルの形式が違います");
+    if (!(await askConfirm("現在のデータを全て、このバックアップの内容で置き換えます。よろしいですか？", "置き換える"))) return;
     state = normalizeState(data.state);
     photos = {};
     const src = data.photos && typeof data.photos === "object" ? data.photos : {};
@@ -881,38 +1034,23 @@ document.getElementById("importInput").onchange = async (e) => {
     toast("読み込めませんでした: " + (err.message || err));
   }
 };
-function resetCounts() {
-  if (!window.confirm("全ての在庫数と声掛け中の数を0にリセットしますか？\n（景品・写真・お取引相手・割当は残ります。この操作は取り消せません）")) return;
-  state.prizes.forEach((p) => p.items.forEach((i) => { i.count = 0; i.calling = 0; }));
+async function resetCounts() {
+  const ev = cur();
+  if (!(await askConfirm("「" + evName(ev) + "」の在庫数と声掛け中の数を0にリセットしますか？\n（他のイベントには影響しません。景品・写真・お取引相手・割当は残ります。この操作は取り消せません）", "リセットする"))) return;
+  ev.prizes.forEach((p) => p.items.forEach((i) => { i.count = 0; i.calling = 0; }));
   commit();
 }
 
-/* ========== 描画 ========== */
-function render() {
-  document.getElementById("editBtn").style.display = tab === "stock" ? "" : "none";
-  document.getElementById("editBtn").classList.toggle("on", editMode);
-  document.getElementById("editBtn").textContent = editMode ? "編集を終える" : "編集";
-  document.getElementById("tabStock").classList.toggle("active", tab === "stock");
-  document.getElementById("tabPartners").classList.toggle("active", tab === "partners");
-  const root = document.getElementById("view");
-  root.replaceChildren();
-  if (!state) return;
-  if (tab === "stock") renderStock(root); else renderPartners(root);
-  if (focusId) {
-    const el = document.querySelector('[data-id="' + focusId + '"]');
-    if (el) el.focus();
-    focusId = null;
-  }
-}
 /* ========== 使い方案内 ========== */
 const GUIDE = [
+  ["イベント（複数のくじ）", "画面上部のプルダウンで、くじ・イベントを切り替えます。「＋ イベント」で新しいイベントを作れます。イベントごとに、賞・景品・在庫・お取引相手が別々に管理されます。"],
   ["在庫の増減", "各景品の「−」「＋」で在庫数を変えます。数字の欄をタップして、直接入力もできます。手動の「−」は0で止まります。"],
   ["声掛け中", "景品の下の「└ 声掛け中」で、今いくつ声をかけているかを数えます。在庫数には影響しません。"],
-  ["賞・景品の編集", "右上の「編集」を押すと、賞と景品の名前を自由に書き換えたり、追加・削除・並べ替え（↑↓）ができます。終わったら「編集を終える」を押します。削除すると、その景品への割当も消えます。"],
+  ["賞・景品の編集", "右上の「編集」を押すと、賞と景品の名前を自由に書き換えたり、追加・削除・並べ替え（↑↓）ができます。イベントの名前変更・並べ替え・削除も、編集モードの先頭でできます。終わったら「編集を終える」を押します。削除すると、その景品への割当も消えます。"],
   ["写真", "景品の左にあるカメラの枠をタップして、写真を1枚登録します。登録後にタップすると、拡大表示・変更・削除ができます。"],
-  ["お取引相手と割当", "画面下の「お取引相手」タブで、相手の名前を登録します。各景品の「お取引相手」ボタンを開くと、相手と数を割り当てられます。お取引相手タブでは、相手ごとに渡す景品の一覧を見られます。"],
+  ["お取引相手と割当", "画面下の「お取引相手」タブで、イベントごとに相手の名前を登録します。各景品の「お取引相手」ボタンを開くと、相手と数を割り当てられます。お取引相手タブでは、全イベント分の、相手ごとに渡す景品の一覧を見られます。"],
   ["渡し済み", "割当の「渡し済み」にチェックを入れると、その数だけ在庫が減ります。在庫が足りなくてもマイナスで登録でき、警告が出ます。チェックを外すと在庫が戻ります。"],
-  ["バックアップ", "在庫タブの一番下から、データをファイルに書き出せます。機種変更や、ブラウザのデータを消す前に書き出しておくと安心です。読み込むと、今のデータが置き換わります。"],
+  ["バックアップ", "在庫タブの一番下から、全イベントのデータをファイルに書き出せます。機種変更や、ブラウザのデータを消す前に書き出しておくと安心です。読み込むと、今のデータが置き換わります。"],
   ["ホーム画面に追加", "iPhoneでは、Safariの共有ボタンから「ホーム画面に追加」して使うと、データが消えにくくなります。データはこの端末の中だけに保存され、他の人には見えません。"]
 ];
 function showGuide() {
@@ -926,8 +1064,42 @@ function showGuide() {
   );
   document.body.append(ov);
 }
+
+/* ========== 描画 ========== */
+function renderEventBar() {
+  const bar = document.getElementById("eventBar");
+  bar.style.display = tab === "stock" ? "" : "none";
+  const sel = document.getElementById("eventSel");
+  sel.replaceChildren();
+  state.events.forEach((ev) => {
+    const o = document.createElement("option");
+    o.value = ev.id;
+    o.textContent = evName(ev);
+    sel.append(o);
+  });
+  sel.value = cur().id;
+}
+function render() {
+  document.getElementById("editBtn").style.display = tab === "stock" ? "" : "none";
+  document.getElementById("editBtn").classList.toggle("on", editMode);
+  document.getElementById("editBtn").textContent = editMode ? "編集を終える" : "編集";
+  document.getElementById("tabStock").classList.toggle("active", tab === "stock");
+  document.getElementById("tabPartners").classList.toggle("active", tab === "partners");
+  const root = document.getElementById("view");
+  root.replaceChildren();
+  if (!state) return;
+  renderEventBar();
+  if (tab === "stock") renderStock(root); else renderPartners(root);
+  if (focusId) {
+    const el = document.querySelector('[data-id="' + focusId + '"]');
+    if (el) el.focus();
+    focusId = null;
+  }
+}
 document.getElementById("helpBtn").onclick = showGuide;
 document.getElementById("editBtn").onclick = () => { editMode = !editMode; render(); };
+document.getElementById("eventSel").onchange = (e) => selectEvent(e.target.value);
+document.getElementById("addEventBtn").onclick = addEvent;
 document.getElementById("tabStock").onclick = () => { tab = "stock"; render(); window.scrollTo(0, 0); };
 document.getElementById("tabPartners").onclick = () => { tab = "partners"; render(); window.scrollTo(0, 0); };
 
@@ -939,7 +1111,7 @@ async function init() {
     if (saved) {
       state = normalizeState(saved);
       photos = await idbAll("photos");
-      setSaveState("保存済み", false);
+      await saveNow(); /* 旧形式だった場合は、新形式で保存し直す */
     } else {
       state = defaultState();
       photos = {};

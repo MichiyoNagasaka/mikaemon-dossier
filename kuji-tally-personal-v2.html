@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>在庫数カウンター（個人用 v2）</title>
-<!-- version: v2.2 (confirm/promptを画面内ダイアログに置き換え) -->
+<!-- version: v2.4 (テキスト出力からお取引相手を除外) -->
 <style>
   :root {
     --ink: #2B2823;
@@ -891,7 +891,7 @@ function renderStock(root) {
 
   wrap.append(h("div", { class: "manage" },
     h("h2", {}, "データ管理"),
-    h("button", { class: "plain", onclick: exportText }, "テキストファイルに出力（全イベント）"),
+    h("button", { class: "plain", onclick: exportText }, "「" + evName(ev) + "」をテキストファイルに出力"),
     h("button", { class: "plain", onclick: exportBackup }, "バックアップを書き出す（JSON・全イベント）"),
     h("button", { class: "plain", onclick: () => document.getElementById("importInput").click() }, "バックアップを読み込む"),
     h("button", { class: "danger", onclick: resetCounts }, "「" + evName(ev) + "」の在庫数・声掛け中を0にリセット"),
@@ -974,35 +974,21 @@ function download(filename, blob) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 const stamp = () => new Date().toISOString().slice(0, 10);
+const safeName = (s) => String(s).replace(/[\\/:*?"<>|]/g, "_").slice(0, 40) || "イベント";
 
 function exportText() {
+  const ev = cur();
   const L = [];
   L.push("在庫数一覧（個人用）");
+  L.push("イベント: " + evName(ev));
   L.push("出力日: " + new Date().toLocaleString("ja-JP"));
   L.push("");
-  state.events.forEach((ev) => {
-    L.push("◆◆ " + evName(ev) + " ◆◆");
-    L.push("");
-    ev.prizes.forEach((prize) => {
-      L.push("【" + (prize.title || "名称未設定") + "】");
-      prize.items.forEach((item) => L.push(nm(item) + ": " + item.count + "（声掛け中: " + item.calling + "）"));
-      L.push("");
-    });
-    L.push("【お取引相手別 渡す景品】");
-    if (ev.partners.length === 0) L.push("(なし)");
-    ev.partners.forEach((p) => {
-      L.push("■ " + (p.name || "名称未設定"));
-      const mine = ev.allocs.filter((a) => a.partnerId === p.id).sort((a, b) => itemOrder(ev, a.itemId) - itemOrder(ev, b.itemId));
-      if (mine.length === 0) L.push("  (なし)");
-      mine.forEach((a) => {
-        const f = findItem(ev, a.itemId);
-        if (!f) return;
-        L.push("  " + (f.prize.title || "名称未設定") + " " + nm(f.item) + " ×" + a.qty + (a.delivered ? "（渡し済み）" : ""));
-      });
-    });
+  ev.prizes.forEach((prize) => {
+    L.push("【" + (prize.title || "名称未設定") + "】");
+    prize.items.forEach((item) => L.push(nm(item) + ": " + item.count + "（声掛け中: " + item.calling + "）"));
     L.push("");
   });
-  download("在庫数_個人用_" + stamp() + ".txt", new Blob([L.join("\n")], { type: "text/plain;charset=utf-8" }));
+  download("在庫数_" + safeName(evName(ev)) + "_" + stamp() + ".txt", new Blob([L.join("\n")], { type: "text/plain;charset=utf-8" }));
 }
 function exportBackup() {
   const data = { app: "kuji-tally-personal", version: 3, exportedAt: new Date().toISOString(), state: state, photos: photos };

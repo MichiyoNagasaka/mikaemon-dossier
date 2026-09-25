@@ -352,14 +352,21 @@ function normalizeEvent(e, fallbackName) {
   (Array.isArray(e.partners) ? e.partners : []).forEach((p) => {
     out.partners.push({ id: String(p.id || uid()), name: String(p.name || "") });
   });
+  /* 旧版(v2.4以前)は「渡し済み」チェックがあり、チェックが入るまでは在庫を減らしていなかった。
+     新版では、割当の数を入力した時点で常に在庫から引く方式にしたため、
+     旧データの「まだ渡し済みでない」割当は、取り込むタイミングで一度だけ在庫から引いて辻褄を合わせる。 */
   (Array.isArray(e.allocs) ? e.allocs : []).forEach((a) => {
-    out.allocs.push({
+    const alloc = {
       id: String(a.id || uid()),
       itemId: String(a.itemId),
       partnerId: String(a.partnerId),
-      qty: Number.isFinite(a.qty) ? Math.max(1, Math.trunc(a.qty)) : 1,
-      delivered: !!a.delivered
-    });
+      qty: Number.isFinite(a.qty) ? Math.max(1, Math.trunc(a.qty)) : 1
+    };
+    out.allocs.push(alloc);
+    if (a.delivered === false) {
+      const f = findItem(out, alloc.itemId);
+      if (f) f.item.count -= alloc.qty;
+    }
   });
   return out;
 }
@@ -466,11 +473,7 @@ function findItemAny(id) {
   }
   return null;
 }
-const unfulfilled = (ev, itemId) =>
-  ev.allocs.filter((a) => a.itemId === itemId && !a.delivered).reduce((s, a) => s + a.qty, 0);
 function warnText(ev, item) {
-  const un = unfulfilled(ev, item.id);
-  if (un > 0 && un > item.count) return "⚠ 未渡し合計" + un + "個が在庫" + item.count + "個を超えています";
   if (item.count < 0) return "⚠ 在庫がマイナスです";
   return "";
 }
@@ -555,52 +558,46 @@ async function deletePrize(ev, prize) {
   commit();
 }
 async function deletePartner(ev, p) {
-  if (!(await askConfirm("お取引相手「" + (p.name || "(名称未設定)") + "」を削除しますか？\n登録済みの割当も消えます（渡し済みの在庫数は元に戻りません）。"))) return;
+  if (!(await askConfirm("お取引相手「" + (p.name || "(名称未設定)") + "」を削除しますか？\n登録済みの割当も消えます（割当の数だけ在庫に戻ります）。"))) return;
+  ev.allocs.filter((a) => a.partnerId === p.id).forEach((a) => {
+    const f = findItem(ev, a.itemId);
+    if (f) f.item.count += a.qty;
+  });
   ev.allocs = ev.allocs.filter((a) => a.partnerId !== p.id);
   ev.partners = ev.partners.filter((x) => x.id !== p.id);
   openPartners.delete(p.id);
   commit();
 }
 async function deleteAlloc(ev, a) {
-  const msg = a.delivered
-    ? "この割当を削除しますか？\n渡し済みのため、在庫数は元に戻りません。戻したい場合は先にチェックを外してください。"
-    : "この割当を削除しますか？";
-  if (!(await askConfirm(msg))) return;
+  if (!(await askConfirm("この割当を削除しますか？\n在庫に" + a.qty + "個戻ります。"))) return;
+  const f = findItem(ev, a.itemId);
+  if (f) f.item.count += a.qty;
   ev.allocs = ev.allocs.filter((x) => x.id !== a.id);
   commit();
 }
 function addAlloc(ev, item, partnerId, qty) {
   if (!partnerId) { toast("お取引相手を選んでください"); return; }
   const n = Math.max(1, qty);
-  const existing = ev.allocs.find((a) => a.itemId === item.id && a.partnerId === partnerId && !a.delivered);
+  const existing = ev.allocs.find((a) => a.itemId === item.id && a.partnerId === partnerId);
   if (existing) existing.qty += n;
-  else ev.allocs.push({ id: uid(), itemId: item.id, partnerId, qty: n, delivered: false });
+  else ev.allocs.push({ id: uid(), itemId: item.id, partnerId, qty: n });
+  item.count -= n;
   openItems.add(item.id);
   const w = warnText(ev, item);
   if (w) toast("「" + nm(item) + "」" + w);
+  else if (item.count < 0) toast("「" + nm(item) + "」の在庫が足りません（" + item.count + "個）");
   commit();
 }
 function setAllocQty(ev, a, value) {
   const f = findItem(ev, a.itemId);
   const n = Math.max(1, value);
-  if (f && a.delivered) f.item.count += a.qty - n;
-  a.qty = n;
   if (f) {
+    f.item.count += a.qty - n;
+    a.qty = n;
     const w = warnText(ev, f.item);
     if (w) toast("「" + nm(f.item) + "」" + w);
-  }
-  commit();
-}
-function setDelivered(ev, a, checked) {
-  const f = findItem(ev, a.itemId);
-  if (!f) return;
-  if (checked && !a.delivered) {
-    f.item.count -= a.qty;
-    a.delivered = true;
-    if (f.item.count < 0) toast("「" + nm(f.item) + "」の在庫が足りません（" + f.item.count + "個）");
-  } else if (!checked && a.delivered) {
-    f.item.count += a.qty;
-    a.delivered = false;
+  } else {
+    a.qty = n;
   }
   commit();
 }
@@ -780,9 +777,6 @@ function allocPanel(ev, item) {
       h("span", { class: "pname" }, p ? (p.name || "(名称未設定)") : "(削除済みの相手)"),
       h("input", { class: "qty", type: "text", inputmode: "numeric", value: String(a.qty),
         "aria-label": "渡す数", onchange: (e) => setAllocQty(ev, a, parseNum(e.target.value)) }),
-      h("label", { class: "chk" },
-        h("input", { type: "checkbox", checked: a.delivered, onchange: (e) => setDelivered(ev, a, e.target.checked) }),
-        "渡し済み"),
       h("button", { class: "del-btn", style: "width:32px;height:32px", "aria-label": "割当を削除", onclick: () => deleteAlloc(ev, a) }, "✕")
     ));
   });
@@ -794,6 +788,7 @@ function allocPanel(ev, item) {
     const qty = h("input", { type: "text", inputmode: "numeric", value: "1", "aria-label": "数" });
     box.append(h("div", { class: "alloc-add" }, sel, qty,
       h("button", { onclick: () => addAlloc(ev, item, sel.value, parseNum(qty.value)) }, "追加")));
+    box.append(h("p", { class: "hint" }, "追加すると、その数だけ在庫から引かれます。"));
   }
   return box;
 }
@@ -922,13 +917,13 @@ function renderPartners(root) {
 
     ev.partners.forEach((p) => {
       const mine = ev.allocs.filter((a) => a.partnerId === p.id).sort((a, b) => itemOrder(ev, a.itemId) - itemOrder(ev, b.itemId));
-      const pending = mine.filter((a) => !a.delivered).reduce((s, a) => s + a.qty, 0);
+      const total = mine.reduce((s, a) => s + a.qty, 0);
       const open = openPartners.has(p.id);
       const card = h("div", { class: "pcard" });
       card.append(h("button", { class: "pcard-head",
         onclick: () => { if (open) openPartners.delete(p.id); else openPartners.add(p.id); render(); } },
         h("span", {}, (p.name || "(名称未設定)") + " " + (open ? "▲" : "▼")),
-        h("span", { class: "badge" }, "未渡し " + pending + "個")
+        h("span", { class: "badge" }, "合計 " + total + "個")
       ));
       if (open) {
         const body = h("div", { class: "pcard-body" });
@@ -936,18 +931,13 @@ function renderPartners(root) {
         mine.forEach((a) => {
           const f = findItem(ev, a.itemId);
           if (!f) return;
-          const w = !a.delivered && unfulfilled(ev, f.item.id) > f.item.count ? "⚠ 在庫不足（在庫 " + f.item.count + "個）" : "";
           body.append(h("div", { class: "prow" },
             thumbEl(f.item, false, true),
             h("div", { class: "info" },
               h("div", { class: "ptitle" }, f.prize.title || "(名称未設定)"),
-              h("div", { class: "iname" }, nm(f.item)),
-              w && h("div", { class: "warn", style: "margin-top:2px" }, w)
+              h("div", { class: "iname" }, nm(f.item))
             ),
-            h("span", { class: "pqty" }, "×" + a.qty),
-            h("label", { class: "chk" },
-              h("input", { type: "checkbox", checked: a.delivered, onchange: (e) => setDelivered(ev, a, e.target.checked) }),
-              "渡し済み")
+            h("span", { class: "pqty" }, "×" + a.qty)
           ));
         });
         body.append(h("div", { class: "pactions" },

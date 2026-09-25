@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>在庫数カウンター（個人用 v2）</title>
-<!-- version: v2.4 (テキスト出力からお取引相手を除外) -->
+<!-- version: v2.8 (文字・ボタンの大きさを元に戻し、余白だけコンパクトに) -->
 <style>
   :root {
     --ink: #2B2823;
@@ -26,11 +26,11 @@
   header {
     position: sticky; top: 0; z-index: 5;
     background: var(--bg);
-    padding: 10px 16px;
+    padding: 7px 14px;
     border-bottom: 1px solid var(--line);
   }
-  .hrow { display: flex; align-items: center; gap: 8px; }
-  .hrow + .hrow { margin-top: 8px; }
+  .hrow { display: flex; align-items: center; gap: 6px; }
+  .hrow + .hrow { margin-top: 6px; }
   header h1 { font-size: 16px; font-weight: 700; margin: 0; flex: 1; min-width: 0; }
   #saveState { font-size: 11px; color: var(--muted); }
   #saveState.error { color: var(--danger); }
@@ -43,21 +43,21 @@
     border-radius: 4px; padding: 6px 10px; font-size: 13px; font-weight: 700; white-space: nowrap;
   }
   .btn-sm.on { background: var(--ink); color: var(--bg); }
-  .wrap { max-width: 640px; margin: 0 auto; padding: 16px; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 12px; }
 
   .ev-panel {
-    border: 1px solid var(--ink); border-radius: 4px; background: #fff; padding: 10px; margin-bottom: 16px;
+    border: 1px solid var(--ink); border-radius: 4px; background: #fff; padding: 8px; margin-bottom: 12px;
   }
-  .ev-panel h2 { font-size: 13px; margin: 0 0 8px; }
+  .ev-panel h2 { font-size: 13px; margin: 0 0 6px; }
   .ev-panel .row { display: flex; gap: 6px; align-items: center; }
   .ev-head {
-    margin: 20px 0 10px; padding: 8px 12px; font-size: 15px; font-weight: 700;
+    margin: 14px 0 8px; padding: 8px 12px; font-size: 15px; font-weight: 700;
     background: var(--ink); color: var(--bg); border-radius: 4px;
   }
   .ev-head:first-child { margin-top: 0; }
 
   section.prize {
-    border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin-bottom: 20px;
+    border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin-bottom: 14px;
   }
   .section-title {
     padding: 8px 12px; font-size: 14px; font-weight: 700; color: #fff;
@@ -73,7 +73,7 @@
   }
 
   .item {
-    display: flex; gap: 10px; padding: 10px 12px;
+    display: flex; gap: 7px; padding: 4px 10px;
     border-bottom: 1px solid rgba(0,0,0,0.07);
   }
   .item:last-of-type { border-bottom: none; }
@@ -107,7 +107,7 @@
     border: 1px solid var(--danger); color: var(--danger); background: #fff; font-size: 16px; padding: 0;
   }
   .sub {
-    margin-top: 6px; padding-left: 8px; font-size: 12px; color: #6d6659;
+    margin-top: 4px; padding-left: 6px; font-size: 12px; color: #6d6659;
   }
   .counter { display: flex; align-items: center; gap: 6px; flex: none; }
   .counter button {
@@ -122,13 +122,13 @@
   .counter.small button { width: 28px; height: 28px; font-size: 15px; }
   .counter.small input { width: 42px; height: 30px; }
   .neg { color: var(--danger); font-weight: 700; }
-  .warn { margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--danger); }
+  .warn { margin-top: 4px; font-size: 12px; font-weight: 700; color: var(--danger); }
   .toggle-alloc {
-    margin-top: 8px; border: 1px solid var(--line); background: rgba(255,255,255,0.8);
+    margin-top: 6px; border: 1px solid var(--line); background: rgba(255,255,255,0.8);
     border-radius: 4px; padding: 6px 10px; font-size: 12px; color: var(--ink);
   }
   .alloc-panel {
-    margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.85);
+    margin-top: 6px; padding: 7px; background: rgba(255,255,255,0.85);
     border: 1px solid var(--line); border-radius: 4px;
   }
   .alloc-row {
@@ -140,8 +140,6 @@
     width: 52px; height: 32px; text-align: center; font-size: 16px;
     border: 1px solid var(--line); border-radius: 4px; padding: 0;
   }
-  .chk { display: flex; align-items: center; gap: 4px; font-size: 12px; white-space: nowrap; }
-  .chk input { width: 20px; height: 20px; margin: 0; }
   .alloc-add { display: flex; gap: 6px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
   .alloc-add select, .alloc-add input {
     height: 34px; font-size: 16px; border: 1px solid var(--line); border-radius: 4px; background: #fff; padding: 0 6px;
@@ -154,16 +152,16 @@
   }
   .hint { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
   .add-btn {
-    display: block; width: calc(100% - 24px); margin: 10px 12px; padding: 10px;
+    display: block; width: calc(100% - 20px); margin: 8px 10px; padding: 10px;
     border: 1px dashed var(--ink); background: rgba(255,255,255,0.7);
     border-radius: 4px; font-size: 14px; font-weight: 700; color: var(--ink);
   }
-  .add-btn.big { width: 100%; margin: 0 0 20px; background: #fff; }
+  .add-btn.big { width: 100%; margin: 0 0 14px; background: #fff; }
 
-  .manage { border: 1px solid var(--line); border-radius: 4px; padding: 12px; background: #fff; }
-  .manage h2 { font-size: 14px; margin: 0 0 8px; }
+  .manage { border: 1px solid var(--line); border-radius: 4px; padding: 10px; background: #fff; }
+  .manage h2 { font-size: 14px; margin: 0 0 6px; }
   .manage button {
-    display: block; width: 100%; padding: 12px; margin-bottom: 8px;
+    display: block; width: 100%; padding: 12px; margin-bottom: 6px;
     font-size: 14px; font-weight: 700; border-radius: 4px;
     border: none; background: var(--ink); color: var(--bg);
   }
@@ -179,14 +177,14 @@
     padding: 0 16px; border: none; border-radius: 4px;
     background: var(--ink); color: var(--bg); font-weight: 700; font-size: 14px;
   }
-  .pcard { border: 1px solid var(--line); border-radius: 4px; background: #fff; margin-bottom: 12px; overflow: hidden; }
+  .pcard { border: 1px solid var(--line); border-radius: 4px; background: #fff; margin-bottom: 8px; overflow: hidden; }
   .pcard-head {
     width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
     padding: 12px; border: none; background: #fff; font-size: 16px; font-weight: 700; text-align: left; color: var(--ink);
   }
   .badge { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 10px; background: #EFE9DC; white-space: nowrap; }
-  .pcard-body { border-top: 1px solid var(--line); padding: 4px 12px 12px; }
-  .prow { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .pcard-body { border-top: 1px solid var(--line); padding: 4px 10px 10px; }
+  .prow { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
   .prow .info { flex: 1; min-width: 0; }
   .prow .iname { font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
   .prow .ptitle { font-size: 11px; color: var(--muted); }
@@ -1025,7 +1023,7 @@ const GUIDE = [
   ["賞・景品の編集", "右上の「編集」を押すと、賞と景品の名前を自由に書き換えたり、追加・削除・並べ替え（↑↓）ができます。イベントの名前変更・並べ替え・削除も、編集モードの先頭でできます。終わったら「編集を終える」を押します。削除すると、その景品への割当も消えます。"],
   ["写真", "景品の左にあるカメラの枠をタップして、写真を1枚登録します。登録後にタップすると、拡大表示・変更・削除ができます。"],
   ["お取引相手と割当", "画面下の「お取引相手」タブで、イベントごとに相手の名前を登録します。各景品の「お取引相手」ボタンを開くと、相手と数を割り当てられます。お取引相手タブでは、全イベント分の、相手ごとに渡す景品の一覧を見られます。"],
-  ["渡し済み", "割当の「渡し済み」にチェックを入れると、その数だけ在庫が減ります。在庫が足りなくてもマイナスで登録でき、警告が出ます。チェックを外すと在庫が戻ります。"],
+  ["お取引相手への割当", "相手と数を登録すると、その場ですぐに在庫からその数が引かれます。数を変更すると差分だけ在庫が増減し、割当を削除したり相手を削除したりすると、引かれていた分は在庫に戻ります。在庫が足りなくてもマイナスで登録でき、警告が出ます。"],
   ["バックアップ", "在庫タブの一番下から、全イベントのデータをファイルに書き出せます。機種変更や、ブラウザのデータを消す前に書き出しておくと安心です。読み込むと、今のデータが置き換わります。"],
   ["ホーム画面に追加", "iPhoneでは、Safariの共有ボタンから「ホーム画面に追加」して使うと、データが消えにくくなります。データはこの端末の中だけに保存され、他の人には見えません。"]
 ];
